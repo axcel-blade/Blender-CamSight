@@ -2,6 +2,13 @@
 
 All notable changes to Blender-CamSight are documented here.
 
+## Unreleased
+
+- Add **Auto Shading**, on by default, so the preview follows the 3D Viewport header: Solid, Wireframe, Material Preview, and Rendered.
+- Add a manual **Shading** menu, used when Auto Shading is off, that changes the preview without leaving the main viewport on that mode.
+- Capture the preview from a timer instead of from inside the viewport draw, so changing shading does not lock Blender.
+- Draw Solid and Wireframe through the camera frame when the viewport is in Camera View, then restore that view.
+
 ## 1.0.0
 
 - Add a floating camera monitor that leaves the main 3D Viewport in free view.

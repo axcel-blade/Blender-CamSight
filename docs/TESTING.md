@@ -15,7 +15,7 @@ The same suite can be started through the project helper:
 uv run python main.py test
 ```
 
-`uv run pytest` and `uv run python main.py test` both run the tests in `tests/`. Those tests cover camera selection, snapshot extraction, aspect fitting, overlay geometry, hit testing, redraw throttling, and register/unregister order. They do not start Blender.
+`uv run pytest` and `uv run python main.py test` both run the tests in `tests/`. Those tests cover camera selection, snapshot extraction, preview shading, aspect fitting, overlay geometry, hit testing, redraw throttling, and register/unregister order. They do not start Blender.
 
 A quiet run:
 

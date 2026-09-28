@@ -47,6 +47,7 @@ def _apply_defaults(settings, context) -> None:
             DEFAULT_PREVIEW_X,
             DEFAULT_PREVIEW_Y,
             DEFAULT_SHADING,
+            DEFAULT_SHADING_FOLLOW,
             DEFAULT_SHOW_CROSSHAIR,
             DEFAULT_SHOW_FRAME,
             DEFAULT_SHOW_HORIZON,
@@ -59,6 +60,7 @@ def _apply_defaults(settings, context) -> None:
         settings.preview_height = DEFAULT_PREVIEW_HEIGHT
         settings.preview_position_x = DEFAULT_PREVIEW_X
         settings.preview_position_y = DEFAULT_PREVIEW_Y
+        settings.shading_follow_viewport = DEFAULT_SHADING_FOLLOW
         settings.shading_mode = DEFAULT_SHADING
         settings.show_camera_frame = DEFAULT_SHOW_FRAME
         settings.show_crosshair = DEFAULT_SHOW_CROSSHAIR
@@ -71,6 +73,7 @@ def _apply_defaults(settings, context) -> None:
     settings.preview_height = prefs.default_height
     settings.preview_position_x = prefs.default_x
     settings.preview_position_y = prefs.default_y
+    settings.shading_follow_viewport = prefs.default_shading_follow_viewport
     settings.shading_mode = prefs.default_shading
     settings.show_camera_frame = prefs.default_show_frame
     settings.show_crosshair = prefs.default_show_crosshair
@@ -237,6 +240,9 @@ class CAMERA_PREVIEW_OT_session(bpy.types.Operator):
             self._finish(context)
             return {"CANCELLED"}
         if event.type == "TIMER":
+            from .drawing import service_deferred_shading
+
+            service_deferred_shading(context)
             if self._drag is None:
                 self._fly(context, settings, event)
             return {"PASS_THROUGH"}

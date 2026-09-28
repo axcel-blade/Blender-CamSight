@@ -36,10 +36,15 @@ class CAMERA_PREVIEW_PT_panel(bpy.types.Panel):
         layout.label(text="Drag the title bar or image to move.")
         layout.label(text="Drag the corner grip to resize.")
 
-        layout.prop(settings, "shading_mode")
-        note = layout.box()
-        note.label(text="Live image uses this 3D Viewport's shading.")
-        note.label(text="Solid is the supported mode in this version.")
+        layout.prop(settings, "shading_follow_viewport")
+        if settings.shading_follow_viewport:
+            note = layout.box()
+            note.label(text="Preview shading follows this 3D Viewport.")
+        else:
+            layout.prop(settings, "shading_mode")
+            note = layout.box()
+            note.label(text="Preview uses the shading menu above.")
+            note.label(text="Viewport shading changes leave it unchanged.")
 
         overlays = layout.column(align=True)
         overlays.label(text="Overlays")

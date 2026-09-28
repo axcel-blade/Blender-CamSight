@@ -64,4 +64,5 @@ Use the pull request template. Keep the diff limited to the change you are makin
 - Keep constants in `src/blender_camsight/constants.py`.
 - Register and unregister handlers, keymaps, draw callbacks, and GPU buffers so a reload does not leak them.
 - Do not call `bpy.ops.view3d.view_camera()`. That would replace the user's view.
-- New shading modes must not change the main viewport's shading as a side effect.
+- Do not call `GPUOffScreen.draw_view3d` from the `POST_PIXEL` draw handler. Capture from the timer. A capture inside the viewport draw re-enters Camera View and locks Blender.
+- New shading modes must not leave the main viewport's shading or view perspective changed. Apply them for the capture and restore them before the timer returns.

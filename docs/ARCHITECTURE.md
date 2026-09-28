@@ -13,6 +13,7 @@ Blender-CamSight does not put the main 3D Viewport into Camera View. Blender can
 | `addon.py` | Register classes, properties, handlers, and the keymap |
 | `camera.py` | Choose a camera and read lens, sensor, shift, clips, and resolution |
 | `preview.py` | Widget layout, hit testing, and redraw throttle |
+| `shading.py` | Choose auto or manual preview shading |
 | `viewport.py` | Limit drawing to `VIEW_3D` window regions |
 | `drawing.py` | Offscreen camera image, blit, and overlays |
 | `handlers.py` | Depsgraph updates and the draw handler |
@@ -25,10 +26,12 @@ Blender-CamSight does not put the main 3D Viewport into Camera View. Blender can
 
 ## Draw path
 
-1. `depsgraph_update_post` marks the preview dirty and tags 3D View redraws.
-2. The `POST_PIXEL` draw handler blits the cached texture.
-3. When the cache is dirty, and at most about 24 times per second, `GPUOffScreen.draw_view3d` renders with `camera.matrix_world.inverted()` and `camera.calc_matrix_camera(...)`.
-4. A re-entry guard stops that pass from painting the monitor into its own texture.
+1. `depsgraph_update_post` marks the preview dirty and tags 3D View redraws. Restoring the viewport after a manual shading capture is ignored, so that restore is not treated as a scene edit.
+2. The `POST_PIXEL` draw handler blits the cached texture and draws overlays. It does not call `draw_view3d`.
+3. When the image is stale, that handler queues a capture. The modal timer runs `GPUOffScreen.draw_view3d` at most about 24 times per second, with `camera.matrix_world.inverted()` and `camera.calc_matrix_camera(...)`, then tags one blit.
+4. **Auto Shading** uses the 3D Viewport mode: Solid, Wireframe, Material Preview, or Rendered. With Auto Shading off, the sidebar **Shading** menu is applied for that capture and the viewport mode is restored before the timer returns.
+5. Solid and Wireframe are Workbench draws. If the viewport is in Camera View, the capture uses a perspective view for that call so Workbench keeps the camera matrices, then Camera View is restored.
+6. A re-entry guard skips the draw handler during the capture so the monitor is not painted into its own texture.
 
 Orbiting the main view does not update the dependency graph, so it only blits.
 

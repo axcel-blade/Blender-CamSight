@@ -28,6 +28,28 @@ def iter_view3d_areas(screen: Any) -> Iterable[Any]:
             yield area
 
 
+def find_view3d_space(window_manager: Any, *, prefer_camera_view: bool = False):
+    """Return ``(window, area, region, space)`` for a 3D Viewport, if one exists."""
+    found = None
+    windows = getattr(window_manager, "windows", None) or ()
+    for window in windows:
+        for area in iter_view3d_areas(getattr(window, "screen", None)):
+            region = window_region(area)
+            spaces = getattr(area, "spaces", None)
+            space = getattr(spaces, "active", None) if spaces is not None else None
+            if region is None or space is None:
+                continue
+            candidate = (window, area, region, space)
+            if not prefer_camera_view:
+                return candidate
+            perspective = getattr(getattr(space, "region_3d", None), "view_perspective", None)
+            if perspective == "CAMERA":
+                return candidate
+            if found is None:
+                found = candidate
+    return found
+
+
 def tag_view3d_redraws(window_manager: Any) -> int:
     """Request a redraw of every 3D Viewport. Returns how many areas were tagged."""
     count = 0

@@ -7,7 +7,7 @@ Blender-CamSight shows a live camera monitor while the main 3D Viewport stays in
 1. Use Blender 4.2 or newer.
 2. Install `Blender-CamSight.zip` from the [latest release](https://github.com/axcel-blade/Blender-CamSight/releases/latest), not the git checkout folder. The folder name contains a hyphen, so Blender cannot import it as an add-on.
 3. Enable **Blender-CamSight**, then open the 3D Viewport sidebar and the **Blender-CamSight** tab.
-4. Read [Known limitations](README.md#known-limitations). The monitor follows the current 3D Viewport shading. It is not a second editor and it is not a Cycles render.
+4. Read [Known limitations](README.md#known-limitations). **Auto Shading** follows the 3D Viewport header (Solid, Wireframe, Material Preview, Rendered). Turn it off to pick a preview shading from the sidebar. Changing shading should leave Blender responsive. The monitor is not a second editor and it is not a Cycles render.
 
 ## Where to ask
 

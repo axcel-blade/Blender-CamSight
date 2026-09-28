@@ -11,7 +11,7 @@ from typing import List
 
 import bpy
 
-from .drawing import draw_callback, free_offscreen, runtime
+from .drawing import draw_callback, free_offscreen, runtime, shading_override_active
 from .registration import add_unique, remove_all
 from .viewport import tag_view3d_redraws
 
@@ -20,6 +20,10 @@ _depsgraph_handlers: List[object] = []
 
 def _on_depsgraph_update(scene, depsgraph) -> None:
     del depsgraph
+    # Restoring the viewport shading after an offscreen draw can notify the
+    # dependency graph. That notification is not a scene change.
+    if shading_override_active() or runtime().offscreen_rendering:
+        return
     settings = getattr(scene, "camera_preview", None)
     if settings is None or not settings.preview_enabled:
         return
