@@ -13,4 +13,4 @@ The add-on does not switch the main viewport into Camera View. Say if this reque
 
 ## Shading, overlays, or camera control
 
-Which of those this affects.
+Which of those this affects. Auto Shading and the manual Shading menu already cover Solid, Wireframe, Material Preview, and Rendered.

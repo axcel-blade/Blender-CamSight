@@ -2,8 +2,13 @@
 
 The live image is produced by ``GPUOffScreen.draw_view3d`` using the camera
 view and projection matrices. The main viewport's view matrix is never
-replaced. The offscreen image is cached and blitted; it is rebuilt only when
-the runtime is dirty and the redraw interval has elapsed.
+replaced. The viewport draw callback only blits. The scene capture runs from
+the add-on timer, outside that draw, so a shading change cannot re-enter
+Camera View and lock Blender. Solid and Wireframe temporarily leave Camera
+View for that one capture so Workbench uses the camera matrices, then the
+view and any manual shading are restored.
+The offscreen image is cached and blitted; it is rebuilt only when the
+runtime is dirty and the redraw interval has elapsed.
 """
 
 from __future__ import annotations
@@ -31,6 +36,7 @@ from .constants import (
     MAX_OFFSCREEN_DIMENSION,
     MIN_REDRAW_INTERVAL,
     OVERLAY_LINE_WIDTH,
+    RESIZE_HANDLE,
     SAFE_ACTION,
     SAFE_TITLE,
 )
@@ -42,10 +48,18 @@ from .preview import (
     inset_rect,
     thirds_lines,
 )
+from .shading import (
+    resolve_preview_shading,
+    shading_cache_token,
+    workbench_needs_user_view,
+)
 from .viewport import is_compatible_region
 
 _offscreen = None
 _runtime = PreviewRuntime()
+# Ignores dependency-graph echoes caused by swapping shading for one offscreen draw.
+_SHADING_SUPPRESS_SECONDS = 0.15
+_shading_suppress_until = 0.0
 
 
 def runtime() -> PreviewRuntime:
@@ -143,6 +157,232 @@ def _ensure_offscreen(width: int, height: int):
     return _offscreen
 
 
+def shading_override_active() -> bool:
+    """True while a preview draw has temporarily replaced viewport shading."""
+    import time
+
+    return time.monotonic() < _shading_suppress_until
+
+
+def _arm_shading_suppress() -> None:
+    """Cover the dependency-graph notice that follows a shading swap and restore."""
+    import time
+
+    global _shading_suppress_until
+    _shading_suppress_until = time.monotonic() + _SHADING_SUPPRESS_SECONDS
+
+
+def _viewport_shading_type(space) -> str:
+    shading = getattr(space, "shading", None)
+    return getattr(shading, "type", "") or ""
+
+
+def _preview_shading_for_space(settings, space) -> str:
+    return resolve_preview_shading(
+        bool(getattr(settings, "shading_follow_viewport", True)),
+        str(getattr(settings, "shading_mode", "SOLID")),
+        _viewport_shading_type(space),
+    )
+
+
+def _preview_shading(context, settings) -> str:
+    return _preview_shading_for_space(settings, getattr(context, "space_data", None))
+
+
+def _queue_shading_refresh(width: int, height: int, shading_type: str) -> None:
+    """Remember a stale image. The timer captures it, never this draw callback."""
+    _runtime.pending_width = max(1, int(width))
+    _runtime.pending_height = max(1, int(height))
+    _runtime.pending_shading = shading_type
+    _runtime.ready_to_capture = True
+    _runtime.shading_refresh_pending = True
+    _ensure_deferred_service()
+
+
+def _ensure_deferred_service() -> None:
+    try:
+        import bpy
+
+        if not bpy.app.timers.is_registered(_run_deferred_shading):
+            bpy.app.timers.register(_run_deferred_shading, first_interval=0.0)
+    except Exception:
+        return
+
+
+def _run_deferred_shading():
+    import bpy
+
+    service_deferred_shading(bpy.context)
+    if _runtime.ready_to_capture and not _runtime.offscreen_rendering:
+        return 0.05
+    return None
+
+
+def service_deferred_shading(context) -> None:
+    """Capture one offscreen image outside the viewport draw callback."""
+    if not _runtime.ready_to_capture or _runtime.offscreen_rendering:
+        return
+    if getattr(draw_callback, "_inside", False):
+        return
+    settings = _settings(context)
+    if settings is None or not settings.preview_enabled:
+        _runtime.ready_to_capture = False
+        _runtime.shading_refresh_pending = False
+        return
+    window_manager = getattr(context, "window_manager", None)
+    if window_manager is None:
+        return
+    from .viewport import find_view3d_space
+
+    target = find_view3d_space(window_manager, prefer_camera_view=False)
+    if target is None:
+        return
+    window, area, region, space = target
+    drew = False
+    _runtime.offscreen_rendering = True
+    _runtime.ready_to_capture = False
+    _runtime.shading_refresh_pending = False
+    draw_callback._inside = True
+    try:
+        override = getattr(context, "temp_override", None)
+        if callable(override):
+            with context.temp_override(window=window, area=area, region=region):
+                drew = _capture_offscreen(context, space, region)
+        else:
+            drew = _capture_offscreen(context, space, region)
+    finally:
+        draw_callback._inside = False
+        _runtime.offscreen_rendering = False
+    if drew:
+        _tag_redraw(context)
+
+
+def _capture_offscreen(context, space, region) -> bool:
+    import time
+
+    settings = _settings(context)
+    if settings is None or not settings.preview_enabled:
+        return False
+    camera_object = _resolve_camera(context, settings)
+    scene = getattr(context, "scene", None)
+    render = getattr(scene, "render", None)
+    if camera_object is None or render is None:
+        return False
+    snapshot = camera_mod.extract_camera_snapshot(
+        camera_object,
+        resolution_x=int(render.resolution_x),
+        resolution_y=int(render.resolution_y),
+        resolution_percentage=float(render.resolution_percentage),
+    )
+    if snapshot is None:
+        return False
+    shading_type = _runtime.pending_shading or _preview_shading_for_space(settings, space)
+    token = shading_cache_token(snapshot.token(), shading_type)
+    now = time.monotonic()
+    if not should_refresh_now(token, now) and _offscreen is not None:
+        _runtime.ready_to_capture = True
+        _runtime.shading_refresh_pending = True
+        return False
+    width = _runtime.pending_width or int(settings.preview_width)
+    height = _runtime.pending_height or int(settings.preview_height)
+    _arm_shading_suppress()
+    try:
+        _draw_offscreen(context, camera_object, snapshot, width, height, space, region, shading_type)
+        _runtime.mark_clean(token, now)
+        _runtime.error_reported = False
+        return True
+    except Exception as exc:
+        if not _runtime.error_reported:
+            _runtime.error_reported = True
+            print(f"Camera Preview: offscreen draw failed ({exc})")
+        return False
+    finally:
+        _arm_shading_suppress()
+
+
+def _tag_redraw(context) -> None:
+    from .viewport import tag_view3d_redraws
+
+    window_manager = getattr(context, "window_manager", None)
+    if window_manager is not None:
+        tag_view3d_redraws(window_manager)
+
+
+def _remember_view(region_3d) -> dict:
+    state = {"view_perspective": region_3d.view_perspective}
+    if hasattr(region_3d, "view_distance"):
+        state["view_distance"] = region_3d.view_distance
+    for name in ("view_location", "view_rotation"):
+        value = getattr(region_3d, name, None)
+        if value is not None and hasattr(value, "copy"):
+            state[name] = value.copy()
+    return state
+
+
+def _restore_view(region_3d, state) -> None:
+    try:
+        region_3d.view_perspective = state["view_perspective"]
+        if "view_distance" in state:
+            region_3d.view_distance = state["view_distance"]
+        for name in ("view_location", "view_rotation"):
+            if name in state:
+                setattr(region_3d, name, state[name])
+    except Exception as exc:
+        print(f"Camera Preview: could not restore the viewport ({exc})")
+
+
+def _draw_offscreen(context, camera_object, snapshot, width, height, space, region, shading_type: str) -> None:
+    buffer = _ensure_offscreen(width, height)
+    view_matrix, projection = _camera_matrices(
+        context, camera_object, snapshot.resolution_x, snapshot.resolution_y
+    )
+
+    def _draw() -> None:
+        region_3d = getattr(space, "region_3d", None)
+        perspective = getattr(region_3d, "view_perspective", None)
+        suspend = region_3d is not None and workbench_needs_user_view(perspective, shading_type)
+        saved = _remember_view(region_3d) if suspend else None
+        if suspend:
+            region_3d.view_perspective = "PERSP"
+        try:
+            buffer.draw_view3d(
+                context.scene,
+                context.view_layer,
+                space,
+                region,
+                view_matrix,
+                projection,
+                do_color_management=True,
+                draw_background=True,
+            )
+        finally:
+            if saved is not None:
+                _restore_view(region_3d, saved)
+
+    _draw_with_shading(space, shading_type, _draw)
+
+
+def _draw_with_shading(space, shading_type: str, draw) -> None:
+    """Draw once with ``shading_type``, then put the 3D Viewport shading back."""
+    shading = getattr(space, "shading", None)
+    current = _viewport_shading_type(space) if shading is not None else ""
+    if shading is None or current == shading_type:
+        draw()
+        return
+    previous = current
+    _arm_shading_suppress()
+    try:
+        shading.type = shading_type
+        draw()
+    finally:
+        try:
+            if _viewport_shading_type(space) != previous:
+                shading.type = previous
+        except Exception as exc:
+            print(f"Camera Preview: could not restore viewport shading ({exc})")
+        _arm_shading_suppress()
+
+
 def _camera_matrices(context, camera_object, resolution_x: int, resolution_y: int):
     view_matrix = camera_object.matrix_world.inverted()
     projection = camera_object.calc_matrix_camera(
@@ -153,42 +393,24 @@ def _camera_matrices(context, camera_object, resolution_x: int, resolution_y: in
     return view_matrix, projection
 
 
-def _refresh_offscreen(context, camera_object, snapshot, frame) -> bool:
+def _refresh_offscreen(context, camera_object, snapshot, frame, shading_type: str) -> bool:
+    """Blit path. Never calls ``draw_view3d`` — that re-enters the viewport and locks Blender."""
     import time
 
-    token = snapshot.token()
-    now = time.monotonic()
-    if not should_refresh_now(token, now) and _offscreen is not None:
+    if _runtime.offscreen_rendering:
         return _offscreen is not None
-    width = max(1, int(frame[2]))
-    height = max(1, int(frame[3]))
-    try:
-        buffer = _ensure_offscreen(width, height)
-        view_matrix, projection = _camera_matrices(
-            context, camera_object, snapshot.resolution_x, snapshot.resolution_y
-        )
-        space = context.space_data
-        region = context.region
-        # Nested viewport draws re-enter this handler. The guard in draw_callback
-        # skips them so the monitor is not baked into its own texture.
-        buffer.draw_view3d(
-            context.scene,
-            context.view_layer,
-            space,
-            region,
-            view_matrix,
-            projection,
-            do_color_management=True,
-            draw_background=True,
-        )
-        _runtime.mark_clean(token, now)
-        _runtime.error_reported = False
+    token = shading_cache_token(snapshot.token(), shading_type)
+    now = time.monotonic()
+    if shading_override_active() and _offscreen is not None:
         return True
-    except Exception as exc:
-        if not _runtime.error_reported:
-            _runtime.error_reported = True
-            print(f"Camera Preview: offscreen draw failed ({exc})")
-        return False
+    stale = _runtime.dirty or _runtime.last_token != token or _runtime.last_token is None
+    if not should_refresh_now(token, now) and _offscreen is not None:
+        if stale:
+            _runtime.mark_dirty()
+            _queue_shading_refresh(int(frame[2]), int(frame[3]), shading_type)
+        return True
+    _queue_shading_refresh(int(frame[2]), int(frame[3]), shading_type)
+    return _offscreen is not None
 
 
 def should_refresh_now(token, now: float) -> bool:
@@ -276,17 +498,40 @@ def _draw_widget(context, settings, region_width: int, region_height: int) -> No
             "to enable the preview.",
             COLOR_MUTED,
         )
-        _draw_rect_outline(layout.bounds, COLOR_BORDER, region_width, region_height)
+        _draw_chrome(layout, region_width, region_height)
         return
 
     frame = fit_aspect(layout.body, snapshot.aspect)
     _draw_rect(*frame, COLOR_EMPTY)
-    if _refresh_offscreen(context, camera_object, snapshot, frame) and _offscreen is not None:
+    shading_type = _preview_shading(context, settings)
+    if _refresh_offscreen(context, camera_object, snapshot, frame, shading_type) and _offscreen is not None:
         gpu.state.depth_mask_set(False)
         draw_texture_2d(_offscreen.texture_color, (frame[0], frame[1]), frame[2], frame[3])
 
     _draw_overlays(settings, snapshot, frame, region_width, region_height)
+    _draw_chrome(layout, region_width, region_height)
+
+
+def _draw_chrome(layout, region_width: float, region_height: float) -> None:
     _draw_rect_outline(layout.bounds, COLOR_BORDER, region_width, region_height)
+    _draw_resize_grip(layout, region_width, region_height)
+
+
+def _draw_resize_grip(layout, region_width: float, region_height: float) -> None:
+    """Diagonal marks in the bottom-right corner, matching the resize hit zone."""
+    right = layout.x + layout.width
+    bottom = layout.y
+    grip = min(float(RESIZE_HANDLE), layout.width, layout.height)
+    for inset in (4.0, 8.0, 12.0):
+        if inset >= grip:
+            continue
+        _draw_line(
+            (right - inset - 1.0, bottom + 2.0),
+            (right - 2.0, bottom + inset + 1.0),
+            COLOR_BORDER,
+            region_width,
+            region_height,
+        )
 
 
 def _draw_overlays(settings, snapshot, frame, region_width: float, region_height: float) -> None:

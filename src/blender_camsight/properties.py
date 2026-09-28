@@ -11,6 +11,7 @@ from .constants import (
     DEFAULT_PREVIEW_X,
     DEFAULT_PREVIEW_Y,
     DEFAULT_SHADING,
+    DEFAULT_SHADING_FOLLOW,
     DEFAULT_SHOW_CROSSHAIR,
     DEFAULT_SHOW_FRAME,
     DEFAULT_SHOW_HORIZON,
@@ -38,10 +39,9 @@ def _on_preview_enabled(self, context) -> None:
 
     runtime().mark_dirty()
     if self.preview_enabled:
-        try:
-            bpy.ops.camera_preview.session("INVOKE_DEFAULT")
-        except Exception:
-            pass
+        from .operators import ensure_session
+
+        ensure_session()
     else:
         runtime().stop_requested = True
     _tag(context)
@@ -52,6 +52,28 @@ def _on_changed(self, context) -> None:
 
     runtime().mark_dirty()
     _tag(context)
+
+
+def _on_position_changed(self, context) -> None:
+    """Redraw the overlay without rebuilding the cached camera image."""
+    _tag(context)
+
+
+def _viewport_shading(context) -> str:
+    space = getattr(context, "space_data", None)
+    shading = getattr(space, "shading", None) if space is not None else None
+    return getattr(shading, "type", "") or ""
+
+
+def _on_shading_follow_changed(self, context) -> None:
+    """Start a manual choice from the viewport shading so the preview does not jump."""
+    if not self.shading_follow_viewport:
+        current = _viewport_shading(context)
+        manual_modes = {item[0] for item in SHADING_ITEMS}
+        if current in manual_modes and self.shading_mode != current:
+            self.shading_mode = current
+            return
+    _on_changed(self, context)
 
 
 def _tag(context) -> None:
@@ -106,7 +128,7 @@ class CameraPreviewSettings(bpy.types.PropertyGroup):
         default=DEFAULT_PREVIEW_X,
         min=0,
         max=10000,
-        update=_on_changed,
+        update=_on_position_changed,
     )
     preview_position_y: bpy.props.IntProperty(
         name="Y",
@@ -114,14 +136,23 @@ class CameraPreviewSettings(bpy.types.PropertyGroup):
         default=DEFAULT_PREVIEW_Y,
         min=0,
         max=10000,
-        update=_on_changed,
+        update=_on_position_changed,
+    )
+    shading_follow_viewport: bpy.props.BoolProperty(
+        name="Auto Shading",
+        description=(
+            "Match the camera preview to this 3D Viewport's shading. "
+            "Turn off to choose Solid, Wireframe, Material Preview, or Rendered "
+            "for the preview only"
+        ),
+        default=DEFAULT_SHADING_FOLLOW,
+        update=_on_shading_follow_changed,
     )
     shading_mode: bpy.props.EnumProperty(
         name="Shading",
         description=(
-            "Stored for later shading modes. The live image follows the "
-            "current 3D Viewport shading, because offscreen drawing reads "
-            "that SpaceView3D and changing it would alter the main view"
+            "Shading drawn in the camera preview when Auto Shading is off. "
+            "The main 3D Viewport is restored after each preview draw"
         ),
         items=SHADING_ITEMS,
         default=DEFAULT_SHADING,

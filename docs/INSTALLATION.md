@@ -19,7 +19,7 @@ uv sync
 uv run python main.py zip
 ```
 
-The file is `dist/Blender-CamSight.zip`. Inside it, the add-on folder is `camera_first_person_preview`.
+The file is `dist/Blender-CamSight.zip`. Inside it, the add-on folder is `blender_camsight`, with a literal `bl_info` in `__init__.py` and a `blender_manifest.toml`. Blender lists it as **Blender-CamSight** under the 3D View tag. A checkout whose `bl_info` is assigned from another module never appears in the list.
 
 1. Use Blender 4.2 or newer.
 2. Edit → Preferences → Add-ons → Install from Disk.

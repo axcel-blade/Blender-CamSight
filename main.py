@@ -13,14 +13,16 @@ import zipfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
-PACKAGE_DIR = "camera_first_person_preview"
+PACKAGE_DIR = "blender_camsight"
 ZIP_NAME = "Blender-CamSight.zip"
 
 INCLUDE = (
     "__init__.py",
     "addon.py",
+    "blender_manifest.toml",
     "LICENSE.md",
     "README.md",
+    "src/__init__.py",
     "src/blender_camsight",
 )
 

@@ -7,6 +7,7 @@ from blender_camsight.constants import (
     DEFAULT_PREVIEW_X,
     DEFAULT_PREVIEW_Y,
     DEFAULT_SHADING,
+    DEFAULT_SHADING_FOLLOW,
     DEFAULT_SHOW_CROSSHAIR,
     DEFAULT_SHOW_FRAME,
     DEFAULT_SHOW_HORIZON,
@@ -25,6 +26,7 @@ def test_sidebar_defaults():
     assert DEFAULT_PREVIEW_X == 20
     assert DEFAULT_PREVIEW_Y == 20
     assert DEFAULT_SHADING == "SOLID"
+    assert DEFAULT_SHADING_FOLLOW is True
     assert DEFAULT_SHOW_FRAME is True
     assert DEFAULT_SHOW_CROSSHAIR is True
     assert DEFAULT_SHOW_THIRDS is False
