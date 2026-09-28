@@ -22,6 +22,7 @@ INCLUDE = (
     "blender_manifest.toml",
     "LICENSE.md",
     "README.md",
+    "src/__init__.py",
     "src/blender_camsight",
 )
 
