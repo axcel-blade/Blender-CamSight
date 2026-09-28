@@ -1,0 +1,11 @@
+schema_version = "1.0.0"
+
+id = "blender_camsight"
+version = "1.0.0"
+name = "Blender-CamSight"
+tagline = "Live camera monitor beside the free viewport"
+maintainer = "AXCEL BLADE"
+type = "add-on"
+tags = ["3D View"]
+blender_version_min = "4.2.0"
+license = ["SPDX:MIT"]

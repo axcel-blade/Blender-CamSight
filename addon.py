@@ -9,6 +9,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+# Keep this dict identical to the literal in __init__.py. Blender's add-on list reads only that file.
 bl_info = {
     "name": "Blender-CamSight",
     "author": "AXCEL BLADE",
@@ -31,7 +32,9 @@ def register() -> None:
     _ensure_src_on_path()
     from blender_camsight import register as register_package
 
-    register_package(module_name=__name__.partition(".")[0])
+    # Preferences are keyed by the full add-on module. An extension module is
+    # bl_ext.<repository>.<id>, so the first dotted piece is not that key.
+    register_package(module_name=__package__ or None)
 
 
 def unregister() -> None:

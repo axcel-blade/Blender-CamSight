@@ -57,7 +57,7 @@ uv run python main.py zip
 2. In Blender, choose Edit → Preferences → Add-ons → Install from Disk and select `dist/Blender-CamSight.zip`.
 3. Enable **Blender-CamSight**.
 
-The packaged module is named `camera_first_person_preview`.
+The packaged module is named `blender_camsight`. Blender lists the add-on as **Blender-CamSight**.
 
 ## Usage
 

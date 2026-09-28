@@ -28,7 +28,7 @@ The Blender image registers and unregisters the add-on in Blender 4.5.14. Comman
 - Put logic that can run without Blender in pure functions and cover it from `tests/`.
 - Do not add web servers, databases, or other third-party runtime services. The add-on uses Blender's Python API.
 
-The install zip folder must stay a valid Python module name. `Blender-CamSight` cannot be imported because of the hyphen, so the packaged module remains `camera_first_person_preview`.
+The install zip folder must stay a valid Python module name. `Blender-CamSight` cannot be imported because of the hyphen, so the packaged module remains `blender_camsight`.
 
 ## Git Flow
 

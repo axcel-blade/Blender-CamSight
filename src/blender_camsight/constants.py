@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-ADDON_ID = "camera_first_person_preview"
+ADDON_ID = "blender_camsight"
 ADDON_NAME = "Blender-CamSight"
 ADDON_VERSION = (1, 0, 0)
 ADDON_VERSION_STRING = ".".join(str(part) for part in ADDON_VERSION)
