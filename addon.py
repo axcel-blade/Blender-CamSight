@@ -12,7 +12,7 @@ from __future__ import annotations
 bl_info = {
     "name": "Blender-CamSight",
     "author": "AXCEL BLADE",
-    "version": (1, 0, 0),
+    "version": (1, 1, 0),
     "blender": (4, 2, 0),
     "location": "View3D > Sidebar > Blender-CamSight",
     "description": "Live first-person camera monitor that leaves the main viewport free",
