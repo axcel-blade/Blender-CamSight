@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "Blender-CamSight"
-version = "1.0.0"
+version = "1.1.0"
 description = "Blender add-on that shows a live first-person camera monitor without leaving the free 3D viewport."
 readme = "README.md"
 requires-python = ">=3.11"

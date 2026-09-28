@@ -4,7 +4,7 @@ from __future__ import annotations
 
 ADDON_ID = "blender_camsight"
 ADDON_NAME = "Blender-CamSight"
-ADDON_VERSION = (1, 0, 0)
+ADDON_VERSION = (1, 1, 0)
 ADDON_VERSION_STRING = ".".join(str(part) for part in ADDON_VERSION)
 
 # Documented against the Blender 4.5 Python API (gpu.types.GPUOffScreen.draw_view3d).

@@ -1,6 +1,6 @@
 # Blender-CamSight
 
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](CHANGELOG.md)
+[![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](CHANGELOG.md)
 [![Release](https://img.shields.io/github/v/release/axcel-blade/Blender-CamSight)](https://github.com/axcel-blade/Blender-CamSight/releases/latest)
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE.md)
 

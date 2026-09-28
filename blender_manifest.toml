@@ -1,7 +1,7 @@
 schema_version = "1.0.0"
 
 id = "blender_camsight"
-version = "1.0.0"
+version = "1.1.0"
 name = "Blender-CamSight"
 tagline = "Live camera monitor beside the free viewport"
 maintainer = "AXCEL BLADE"
