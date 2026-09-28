@@ -4,7 +4,7 @@ Blender-CamSight does not put the main 3D Viewport into Camera View. Blender can
 
 ## Entry
 
-`addon.py` adds `src/` to `sys.path` and calls `blender_camsight.register`. `__init__.py` re-exports that entry so a folder install still works. The zip module name is `blender_camsight` because that string is a valid Python identifier. Blender shows the add-on as Blender-CamSight.
+`__init__.py` is the extension entry. It loads `addon.py`, which imports `src/blender_camsight` relatively and calls `register`. Bundled modules stay inside the extension package. Blender reports a policy violation if an extension edits `sys.path` or imports those files as top-level modules. The zip module name is `blender_camsight` because that string is a valid Python identifier. Blender shows the add-on as Blender-CamSight.
 
 ## Package
 

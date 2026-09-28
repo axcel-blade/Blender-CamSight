@@ -1,13 +1,12 @@
 """Thin Blender entry point.
 
-Blender loads this module (or the package ``__init__`` that re-exports it).
-The implementation lives in ``src/blender_camsight``.
+Blender loads this module as part of the extension package. The implementation
+lives in ``src/blender_camsight`` and is imported relatively so every bundled
+module stays under that package. Extensions must not edit ``sys.path`` or load
+bundled files as top-level modules.
 """
 
 from __future__ import annotations
-
-import sys
-from pathlib import Path
 
 # Keep this dict identical to the literal in __init__.py. Blender's add-on list reads only that file.
 bl_info = {
@@ -21,24 +20,17 @@ bl_info = {
 }
 
 
-def _ensure_src_on_path() -> None:
-    src = Path(__file__).resolve().parent / "src"
-    entry = str(src)
-    if entry not in sys.path:
-        sys.path.insert(0, entry)
+def _implementation():
+    from .src import blender_camsight as package
+
+    return package
 
 
 def register() -> None:
-    _ensure_src_on_path()
-    from blender_camsight import register as register_package
-
     # Preferences are keyed by the full add-on module. An extension module is
     # bl_ext.<repository>.<id>, so the first dotted piece is not that key.
-    register_package(module_name=__package__ or None)
+    _implementation().register(module_name=__package__ or None)
 
 
 def unregister() -> None:
-    _ensure_src_on_path()
-    from blender_camsight import unregister as unregister_package
-
-    unregister_package()
+    _implementation().unregister()
