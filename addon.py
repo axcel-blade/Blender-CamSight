@@ -21,6 +21,13 @@ bl_info = {
 
 
 def _implementation():
+    from pathlib import Path
+
+    from .src.blender_camsight.policy import drop_leaked_extension_imports
+
+    # A previous enable may still have ``src`` on sys.path. Drop that before
+    # Blender draws the extension policy warning.
+    drop_leaked_extension_imports(Path(__file__).resolve().parent)
     from .src import blender_camsight as package
 
     return package

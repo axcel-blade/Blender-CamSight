@@ -46,6 +46,7 @@ class PreviewRuntime:
 
     dirty: bool = True
     modal_running: bool = False
+    session_pending: bool = False
     stop_requested: bool = False
     last_token: Optional[tuple] = None
     last_draw_time: float = 0.0
@@ -59,6 +60,88 @@ class PreviewRuntime:
         self.dirty = False
         self.last_token = token
         self.last_draw_time = now
+
+
+def displayed_layout(
+    x: float,
+    y: float,
+    width: float,
+    height: float,
+    region_width: float,
+    region_height: float,
+    header: float = HEADER_HEIGHT,
+) -> PreviewLayout:
+    """Layout actually drawn, after the widget is kept inside the region."""
+    return clamp_layout(
+        PreviewLayout(x=x, y=y, width=width, height=height, header=header),
+        region_width,
+        region_height,
+    )
+
+
+def apply_window_drag(
+    mode: str,
+    origin: Tuple[float, float],
+    mouse: Tuple[float, float],
+    start: PreviewLayout,
+    region_width: float,
+    region_height: float,
+    min_size: float,
+    max_size: float,
+) -> Tuple[int, int, int, int]:
+    """Move or resize from the bottom-right corner. Returns x, y, width, height.
+
+    Move follows the pointer and keeps the widget, including its header, inside
+    the region. Resize keeps the left edge and the top of the image fixed, so
+    dragging the bottom-right grip down and right grows the window.
+    """
+    dx = mouse[0] - origin[0]
+    dy = mouse[1] - origin[1]
+    if mode == "move":
+        moved = clamp_layout(
+            PreviewLayout(
+                x=start.x + dx,
+                y=start.y + dy,
+                width=start.width,
+                height=start.height,
+                header=start.header,
+            ),
+            region_width,
+            region_height,
+        )
+        return _layout_box(moved)
+
+    width = _clamp_size(start.width + dx, min_size, max_size)
+    height = _clamp_size(start.height - dy, min_size, max_size)
+    body_top = start.y + start.height
+    room_above_bottom = body_top
+    if room_above_bottom >= min_size:
+        height = min(height, room_above_bottom)
+    room_to_the_right = region_width - start.x
+    if room_to_the_right >= min_size:
+        width = min(width, room_to_the_right)
+    y = body_top - height
+    if y < 0:
+        y = 0.0
+    resized = clamp_layout(
+        PreviewLayout(x=start.x, y=y, width=width, height=height, header=start.header),
+        region_width,
+        region_height,
+    )
+    return _layout_box(resized)
+
+
+def _clamp_size(value: float, min_size: float, max_size: float) -> float:
+    return min(max(value, min_size), max_size)
+
+
+def _layout_box(layout: PreviewLayout) -> Tuple[int, int, int, int]:
+    return (
+        int(round(layout.x)),
+        int(round(layout.y)),
+        int(round(layout.width)),
+        int(round(layout.height)),
+    )
 
 
 def clamp_layout(layout: PreviewLayout, region_width: float, region_height: float) -> PreviewLayout:
