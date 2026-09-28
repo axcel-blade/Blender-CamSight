@@ -11,6 +11,7 @@ from .constants import (
     DEFAULT_PREVIEW_X,
     DEFAULT_PREVIEW_Y,
     DEFAULT_SHADING,
+    DEFAULT_SHADING_FOLLOW,
     DEFAULT_SHORTCUT_ALT,
     DEFAULT_SHORTCUT_CTRL,
     DEFAULT_SHORTCUT_KEY,
@@ -68,8 +69,14 @@ class CameraPreviewPreferences(bpy.types.AddonPreferences):
     )
     default_x: bpy.props.IntProperty(name="Default X", default=DEFAULT_PREVIEW_X, min=0, max=10000)
     default_y: bpy.props.IntProperty(name="Default Y", default=DEFAULT_PREVIEW_Y, min=0, max=10000)
+    default_shading_follow_viewport: bpy.props.BoolProperty(
+        name="Auto Shading",
+        description="Reset starts with the preview matching the 3D Viewport shading",
+        default=DEFAULT_SHADING_FOLLOW,
+    )
     default_shading: bpy.props.EnumProperty(
         name="Default Shading",
+        description="Manual preview shading applied by Reset Camera Preview",
         items=SHADING_ITEMS,
         default=DEFAULT_SHADING,
     )
@@ -103,6 +110,7 @@ class CameraPreviewPreferences(bpy.types.AddonPreferences):
         grid.prop(self, "default_height")
         grid.prop(self, "default_x")
         grid.prop(self, "default_y")
+        layout.prop(self, "default_shading_follow_viewport")
         layout.prop(self, "default_shading")
         layout.label(text="Default Overlays")
         layout.prop(self, "default_show_frame")

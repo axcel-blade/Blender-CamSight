@@ -52,6 +52,12 @@ class PreviewRuntime:
     last_draw_time: float = 0.0
     draw_handler: Optional[object] = None
     error_reported: bool = False
+    shading_refresh_pending: bool = False
+    ready_to_capture: bool = False
+    offscreen_rendering: bool = False
+    pending_width: int = 0
+    pending_height: int = 0
+    pending_shading: str = "SOLID"
 
     def mark_dirty(self) -> None:
         self.dirty = True

@@ -29,11 +29,12 @@ CLOSE_BUTTON = 18
 WIDGET_MARGIN = 8
 
 DEFAULT_SHADING = "SOLID"
+DEFAULT_SHADING_FOLLOW = True
 SHADING_ITEMS = (
-    ("SOLID", "Solid", "Solid viewport shading"),
-    ("WIREFRAME", "Wireframe", "Reserved for a later phase"),
-    ("MATERIAL", "Material Preview", "Reserved for a later phase"),
-    ("RENDERED", "Rendered", "Reserved for a later phase"),
+    ("SOLID", "Solid", "Solid shading in the camera preview"),
+    ("WIREFRAME", "Wireframe", "Wireframe shading in the camera preview"),
+    ("MATERIAL", "Material Preview", "Material Preview shading in the camera preview"),
+    ("RENDERED", "Rendered", "Rendered shading in the camera preview"),
 )
 
 DEFAULT_SHOW_FRAME = True
