@@ -1,0 +1,14 @@
+name: blender-camsight
+
+services:
+  test:
+    build:
+      context: .
+      target: test
+    command: ["uv", "run", "pytest"]
+
+  blender:
+    profiles: ["blender"]
+    build:
+      context: .
+      target: blender
