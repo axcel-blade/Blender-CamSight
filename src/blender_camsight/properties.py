@@ -38,10 +38,9 @@ def _on_preview_enabled(self, context) -> None:
 
     runtime().mark_dirty()
     if self.preview_enabled:
-        try:
-            bpy.ops.camera_preview.session("INVOKE_DEFAULT")
-        except Exception:
-            pass
+        from .operators import ensure_session
+
+        ensure_session()
     else:
         runtime().stop_requested = True
     _tag(context)
@@ -51,6 +50,11 @@ def _on_changed(self, context) -> None:
     from .drawing import runtime
 
     runtime().mark_dirty()
+    _tag(context)
+
+
+def _on_position_changed(self, context) -> None:
+    """Redraw the overlay without rebuilding the cached camera image."""
     _tag(context)
 
 
@@ -106,7 +110,7 @@ class CameraPreviewSettings(bpy.types.PropertyGroup):
         default=DEFAULT_PREVIEW_X,
         min=0,
         max=10000,
-        update=_on_changed,
+        update=_on_position_changed,
     )
     preview_position_y: bpy.props.IntProperty(
         name="Y",
@@ -114,7 +118,7 @@ class CameraPreviewSettings(bpy.types.PropertyGroup):
         default=DEFAULT_PREVIEW_Y,
         min=0,
         max=10000,
-        update=_on_changed,
+        update=_on_position_changed,
     )
     shading_mode: bpy.props.EnumProperty(
         name="Shading",

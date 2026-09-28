@@ -41,6 +41,33 @@ def tag_view3d_redraws(window_manager: Any) -> int:
     return count
 
 
+def region_local_mouse(
+    mouse_x: float,
+    mouse_y: float,
+    region_x: float,
+    region_y: float,
+) -> tuple[float, float]:
+    """Convert window coordinates to a region's bottom-left origin."""
+    return (mouse_x - region_x, mouse_y - region_y)
+
+
+def find_view3d_window(areas: Any, mouse_x: float, mouse_y: float):
+    """Return the 3D View window region that contains a window-space point."""
+    for area in areas or ():
+        if not is_view3d_area(getattr(area, "type", None)):
+            continue
+        for region in getattr(area, "regions", None) or ():
+            if not is_window_region(getattr(region, "type", None)):
+                continue
+            x = float(getattr(region, "x", 0))
+            y = float(getattr(region, "y", 0))
+            width = float(getattr(region, "width", 0))
+            height = float(getattr(region, "height", 0))
+            if x <= mouse_x < x + width and y <= mouse_y < y + height:
+                return area, region
+    return None, None
+
+
 def window_region(area: Any) -> Any:
     for region in getattr(area, "regions", None) or ():
         if is_window_region(getattr(region, "type", None)):

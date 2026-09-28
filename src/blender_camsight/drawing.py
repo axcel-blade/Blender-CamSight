@@ -31,6 +31,7 @@ from .constants import (
     MAX_OFFSCREEN_DIMENSION,
     MIN_REDRAW_INTERVAL,
     OVERLAY_LINE_WIDTH,
+    RESIZE_HANDLE,
     SAFE_ACTION,
     SAFE_TITLE,
 )
@@ -276,7 +277,7 @@ def _draw_widget(context, settings, region_width: int, region_height: int) -> No
             "to enable the preview.",
             COLOR_MUTED,
         )
-        _draw_rect_outline(layout.bounds, COLOR_BORDER, region_width, region_height)
+        _draw_chrome(layout, region_width, region_height)
         return
 
     frame = fit_aspect(layout.body, snapshot.aspect)
@@ -286,7 +287,29 @@ def _draw_widget(context, settings, region_width: int, region_height: int) -> No
         draw_texture_2d(_offscreen.texture_color, (frame[0], frame[1]), frame[2], frame[3])
 
     _draw_overlays(settings, snapshot, frame, region_width, region_height)
+    _draw_chrome(layout, region_width, region_height)
+
+
+def _draw_chrome(layout, region_width: float, region_height: float) -> None:
     _draw_rect_outline(layout.bounds, COLOR_BORDER, region_width, region_height)
+    _draw_resize_grip(layout, region_width, region_height)
+
+
+def _draw_resize_grip(layout, region_width: float, region_height: float) -> None:
+    """Diagonal marks in the bottom-right corner, matching the resize hit zone."""
+    right = layout.x + layout.width
+    bottom = layout.y
+    grip = min(float(RESIZE_HANDLE), layout.width, layout.height)
+    for inset in (4.0, 8.0, 12.0):
+        if inset >= grip:
+            continue
+        _draw_line(
+            (right - inset - 1.0, bottom + 2.0),
+            (right - 2.0, bottom + inset + 1.0),
+            COLOR_BORDER,
+            region_width,
+            region_height,
+        )
 
 
 def _draw_overlays(settings, snapshot, frame, region_width: float, region_height: float) -> None:

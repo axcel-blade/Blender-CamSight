@@ -33,6 +33,8 @@ class CAMERA_PREVIEW_PT_panel(bpy.types.Panel):
         position.label(text="Position")
         position.prop(settings, "preview_position_x")
         position.prop(settings, "preview_position_y")
+        layout.label(text="Drag the title bar or image to move.")
+        layout.label(text="Drag the corner grip to resize.")
 
         layout.prop(settings, "shading_mode")
         note = layout.box()

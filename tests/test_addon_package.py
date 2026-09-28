@@ -109,6 +109,33 @@ def _load_extension_package():
     return module
 
 
+def test_leaked_src_import_is_removed_without_touching_the_extension_package(tmp_path: Path):
+    from blender_camsight.policy import drop_leaked_imports
+
+    root = tmp_path / "blender_camsight"
+    package = root / "src" / "blender_camsight"
+    package.mkdir(parents=True)
+    init = package / "__init__.py"
+    constants = package / "constants.py"
+    init.write_text("", encoding="utf-8")
+    constants.write_text("", encoding="utf-8")
+    other = tmp_path / "other"
+    other.mkdir()
+    sys_path = [str(root / "src"), str(other)]
+    modules = {
+        "blender_camsight": types.SimpleNamespace(__file__=str(init), __path__=[str(package)]),
+        "blender_camsight.constants": types.SimpleNamespace(__file__=str(constants)),
+        "bl_ext.user_default.blender_camsight.src.blender_camsight": types.SimpleNamespace(__file__=str(init)),
+        "keep": types.SimpleNamespace(__file__=str(other / "keep.py")),
+    }
+    drop_leaked_imports(sys_path, modules, root)
+    assert sys_path == [str(other)]
+    assert "blender_camsight" not in modules
+    assert "blender_camsight.constants" not in modules
+    assert "bl_ext.user_default.blender_camsight.src.blender_camsight" in modules
+    assert "keep" in modules
+
+
 def test_extension_import_stays_inside_its_package():
     path_before = list(sys.path)
     modules_before = set(sys.modules)
